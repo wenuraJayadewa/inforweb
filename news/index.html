@@ -1,0 +1,532 @@
+<!DOCTYPE html>
+<html lang="si">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>GoviNet News Feed</title>
+  <link rel="icon" href="../G.png" type="image/png" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Noto+Sans+Sinhala:wght@400;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+  <style>
+    * { font-family: 'Inter', sans-serif; }
+    .si { font-family: 'Noto Sans Sinhala', sans-serif; }
+    :root { --g-mid:#16a34a; --g-dark:#15803d; --g-light:#dcfce7; }
+
+    body { background: #f0f2f5; }
+
+    .post-card {
+      background: #fff;
+      border-radius: 10px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+      overflow: hidden;
+      transition: box-shadow 0.2s;
+      animation: fadeUp 0.4s ease both;
+    }
+    @keyframes fadeUp {
+      from { opacity:0; transform:translateY(12px); }
+      to   { opacity:1; transform:translateY(0); }
+    }
+    .post-card:nth-child(2) { animation-delay:.05s; }
+    .post-card:nth-child(3) { animation-delay:.1s; }
+    .post-card:nth-child(4) { animation-delay:.15s; }
+    .post-card:nth-child(5) { animation-delay:.2s; }
+    .post-card:nth-child(6) { animation-delay:.25s; }
+    .post-card:hover { box-shadow: 0 4px 12px rgba(0,0,0,0.12); }
+
+    .reaction-btn {
+      display:flex; align-items:center; justify-content:center;
+      gap:6px; flex:1; padding:8px 0; border-radius:6px;
+      cursor:pointer; color:#65748b; font-size:14px; font-weight:600;
+      transition:background .15s, color .15s;
+    }
+    .reaction-btn:hover { background:#f3f4f6; color:#111; }
+    .reaction-btn.liked { color:var(--g-mid); }
+
+    .badge {
+      display:inline-flex; align-items:center; gap:4px;
+      font-size:11px; font-weight:700; padding:2px 8px;
+      border-radius:999px; text-transform:uppercase;
+    }
+    .tag { background:var(--g-light); color:var(--g-dark); font-size:12px; padding:2px 8px; border-radius:999px; font-weight:600; }
+
+    .lang-divider { display:flex; align-items:center; gap:8px; margin:6px 0; }
+    .lang-divider::before,.lang-divider::after { content:''; flex:1; height:1px; background:#e5e7eb; }
+    .lang-divider span { font-size:10px; color:#9ca3af; font-weight:600; letter-spacing:.06em; }
+
+    /* skeleton */
+    .skeleton-card { background:#fff; border-radius:10px; padding:16px; box-shadow:0 1px 3px rgba(0,0,0,0.08); }
+    .skel { background:linear-gradient(90deg,#f0f2f5 25%,#e4e6eb 50%,#f0f2f5 75%); background-size:200% auto; animation:shimmer 1.3s linear infinite; border-radius:6px; }
+    @keyframes shimmer { 0%{background-position:200% center} 100%{background-position:-200% center} }
+
+    /* status bar */
+    #status-bar { transition:all .3s; }
+
+    /* source link */
+    .source-link { font-size:11px; color:#9ca3af; }
+    .source-link a { color:#16a34a; text-decoration:none; }
+    .source-link a:hover { text-decoration:underline; }
+
+    .img-ph      { background:linear-gradient(135deg,#d1fae5,#a7f3d0); }
+    .img-ph-blue { background:linear-gradient(135deg,#dbeafe,#93c5fd); }
+    .img-ph-amber{ background:linear-gradient(135deg,#fef3c7,#fde68a); }
+    .img-ph-red  { background:linear-gradient(135deg,#fee2e2,#fca5a5); }
+  </style>
+</head>
+<body>
+
+<!-- ── CONFIG ── -->
+<script>
+  const ANTHROPIC_API_KEY = "YOUR_ANTHROPIC_API_KEY_HERE";
+  const BACKEND_API = "https://govinetwebapi-etb4dygbafa7bvbs.canadacentral-01.azurewebsites.net";
+</script>
+
+<!-- Status bar -->
+<div id="status-bar" class="sticky top-0 z-50 bg-white border-b border-gray-100 px-4 py-2 flex items-center justify-between text-xs text-gray-500 shadow-sm">
+  <div class="flex items-center gap-2">
+    <img src="../G.png" class="w-5 h-5 rounded-full" />
+    <span class="font-bold text-green-700">GoviNet News</span>
+  </div>
+  <div id="status-msg" class="flex items-center gap-1.5">
+    <span class="w-2 h-2 rounded-full bg-amber-400 animate-pulse"></span>
+    <span>Fetching live news…</span>
+  </div>
+  <button onclick="loadNews()" class="flex items-center gap-1 text-green-600 font-semibold hover:text-green-800">
+    <i class="fa-solid fa-rotate text-xs"></i> Refresh
+  </button>
+</div>
+
+<!-- Feed -->
+<div id="feed" class="max-w-xl mx-auto px-4 py-4 flex flex-col gap-4">
+  <!-- Skeletons shown while loading -->
+  <div class="skeleton-card" id="skel1">
+    <div class="flex items-center gap-3 mb-4">
+      <div class="skel w-10 h-10 rounded-full"></div>
+      <div class="flex-1"><div class="skel h-3 w-1/2 mb-2"></div><div class="skel h-2 w-1/3"></div></div>
+    </div>
+    <div class="skel h-3 w-full mb-2"></div>
+    <div class="skel h-3 w-4/5 mb-2"></div>
+    <div class="skel h-3 w-3/5 mb-4"></div>
+    <div class="skel h-32 w-full rounded-xl"></div>
+  </div>
+  <div class="skeleton-card" id="skel2">
+    <div class="flex items-center gap-3 mb-4">
+      <div class="skel w-10 h-10 rounded-full"></div>
+      <div class="flex-1"><div class="skel h-3 w-1/2 mb-2"></div><div class="skel h-2 w-1/3"></div></div>
+    </div>
+    <div class="skel h-3 w-full mb-2"></div>
+    <div class="skel h-3 w-4/5 mb-2"></div>
+    <div class="skel h-3 w-2/3 mb-4"></div>
+    <div class="skel h-32 w-full rounded-xl"></div>
+  </div>
+  <div class="skeleton-card" id="skel3">
+    <div class="flex items-center gap-3 mb-4">
+      <div class="skel w-10 h-10 rounded-full"></div>
+      <div class="flex-1"><div class="skel h-3 w-1/2 mb-2"></div><div class="skel h-2 w-1/3"></div></div>
+    </div>
+    <div class="skel h-3 w-full mb-2"></div>
+    <div class="skel h-3 w-3/5 mb-4"></div>
+    <div class="skel h-32 w-full rounded-xl"></div>
+  </div>
+</div>
+
+<script>
+// ── Category config ──────────────────────────────────────────
+const CATEGORY_CONFIG = {
+  incident: {
+    icon: 'fa-circle-exclamation', iconBg: 'bg-red-100', iconColor: 'text-red-500',
+    badge: '', badgeIcon: '', badgeLabel: '',
+    imgClass: 'img-ph-red', mapIcon: 'fa-map-location-dot', mapIconColor: 'text-red-400',
+    confirmBtn: true,
+  },
+  market: {
+    icon: 'fa-chart-line', iconBg: 'bg-amber-100', iconColor: 'text-amber-500',
+    badge: 'background:#fef3c7;color:#92400e;', badgeIcon: 'fa-coins', badgeLabel: 'Market',
+    imgClass: 'img-ph-amber', mapIcon: 'fa-chart-bar', mapIconColor: 'text-amber-400',
+    confirmBtn: false,
+  },
+  tip: {
+    icon: 'fa-lightbulb', iconBg: 'bg-green-100', iconColor: 'text-green-600',
+    badge: 'background:#dcfce7;color:#166534;', badgeIcon: 'fa-leaf', badgeLabel: 'Tip',
+    imgClass: 'img-ph', mapIcon: 'fa-seedling', mapIconColor: 'text-green-400',
+    confirmBtn: false,
+  },
+  weather: {
+    icon: 'fa-cloud-sun-rain', iconBg: 'bg-blue-100', iconColor: 'text-blue-500',
+    badge: 'background:#dbeafe;color:#1e40af;', badgeIcon: 'fa-cloud', badgeLabel: 'Weather',
+    imgClass: 'img-ph-blue', mapIcon: 'fa-cloud-sun-rain', mapIconColor: 'text-blue-400',
+    confirmBtn: false,
+  },
+};
+
+// ── Build a post card HTML ───────────────────────────────────
+function buildCard(item, index) {
+  const cfg = CATEGORY_CONFIG[item.category] || CATEGORY_CONFIG.tip;
+  const loc = item.location || '';
+  const locSi = item.location_si || loc;
+  const delay = index * 0.06;
+
+  const sourceHtml = item.source_url
+    ? `<p class="source-link mt-2"><i class="fa-solid fa-link mr-1"></i><a href="${item.source_url}" target="_blank" rel="noopener">Source / මූලාශ්‍රය</a></p>`
+    : '';
+
+  const confirmBtn = cfg.confirmBtn
+    ? `<button class="reaction-btn"><i class="fa-solid fa-circle-check text-green-500"></i>Confirm / තහවුරු</button>`
+    : `<button class="reaction-btn"><i class="fa-regular fa-bookmark"></i>Save / සුරකින්න</button>`;
+
+  const locHtml = loc
+    ? ` · <i class="fa-solid fa-location-dot mr-1"></i>${loc}${locSi !== loc ? ' / ' + locSi : ''}`
+    : '';
+
+  const tags = (item.tags || []).map(t => `<span class="tag">#${t}</span>`).join('');
+
+  return `
+  <article class="post-card" data-category="${item.category}" style="animation-delay:${delay}s">
+    <div class="p-4">
+      <div class="flex items-start justify-between mb-3">
+        <div class="flex items-center gap-3">
+          <img src="../G.png" class="w-10 h-10 rounded-full object-cover border border-green-200" />
+          <div>
+            <div class="flex items-center gap-2 flex-wrap">
+              <span class="font-bold text-gray-900 text-sm">${item.source_name || 'GoviNet News'}</span>
+              ${cfg.badgeLabel ? `<span class="badge" style="${cfg.badge}"><i class="fa-solid ${cfg.badgeIcon} text-[8px]"></i> ${cfg.badgeLabel}</span>` : ''}
+            </div>
+            <p class="text-xs text-gray-400"><i class="fa-regular fa-clock mr-1"></i>${item.time_ago || 'Recently'}${locHtml}</p>
+          </div>
+        </div>
+        <button class="text-gray-400 hover:text-gray-600 p-1"><i class="fa-solid fa-ellipsis"></i></button>
+      </div>
+
+      <p class="si text-gray-800 text-sm leading-relaxed">${item.body_si}</p>
+      <div class="lang-divider"><span>EN</span></div>
+      <p class="text-gray-600 text-sm leading-relaxed mb-3">${item.body_en}</p>
+
+      <!-- Image or coloured placeholder -->
+      ${item.image_url
+        ? `<div class="rounded-xl overflow-hidden mb-3 h-48 bg-gray-100">
+             <img src="${item.image_url}" alt="${item.title_en}"
+               class="w-full h-full object-cover"
+               onerror="this.parentElement.innerHTML='<div class=\\'rounded-xl ${cfg.imgClass} h-48 flex items-center justify-center\\'><div class=\\'text-center\\'><i class=\\'fa-solid ${cfg.mapIcon} text-4xl ${cfg.mapIconColor} mb-1 drop-shadow\\'></i><p class=\\'text-sm font-semibold text-gray-600\\'>${item.title_en}</p></div></div>'" />
+           </div>`
+        : `<div class="rounded-xl ${cfg.imgClass} h-36 flex items-center justify-center mb-3 relative overflow-hidden">
+             <div class="text-center z-10">
+               <i class="fa-solid ${cfg.mapIcon} text-4xl ${cfg.mapIconColor} mb-1 drop-shadow"></i>
+               <p class="text-sm font-semibold text-gray-600">${item.title_en}</p>
+             </div>
+           </div>`
+      }
+
+      ${tags ? `<div class="flex flex-wrap gap-2 mb-2">${tags}</div>` : ''}
+      ${sourceHtml}
+    </div>
+    <div class="border-t border-gray-100 flex items-center px-2 py-1">
+      <button class="reaction-btn" onclick="toggleLike(this)">
+        <i class="fa-regular fa-thumbs-up"></i><span class="like-label">Like / කැමතියි</span>
+      </button>
+      <button class="reaction-btn"><i class="fa-regular fa-comment"></i>Comment</button>
+      ${confirmBtn}
+    </div>
+  </article>`;
+}
+
+// ── Convert a backend NewsPost to the card format ────────────
+function backendToCard(p) {
+  const timeAgo = (() => {
+    const diff = Date.now() - new Date(p.createdAt).getTime();
+    const h = Math.floor(diff / 3600000);
+    if (h < 1) return 'Just now';
+    if (h < 24) return `${h} hour${h > 1 ? 's' : ''} ago`;
+    const d = Math.floor(h / 24);
+    if (d < 7) return `${d} day${d > 1 ? 's' : ''} ago`;
+    return `${Math.floor(d / 7)} week${Math.floor(d/7) > 1 ? 's' : ''} ago`;
+  })();
+
+  return {
+    category:    p.category,
+    source_name: p.sourceName || 'GoviNet News',
+    title_en:    p.titleEn,
+    title_si:    p.titleSi || p.titleEn,
+    body_en:     p.bodyEn,
+    body_si:     p.bodySi || p.bodyEn,
+    location:    p.location || '',
+    location_si: p.locationSi || p.location || '',
+    time_ago:    timeAgo,
+    source_url:  p.sourceUrl || '',
+    tags:        p.tags ? p.tags.split(',').map(t => t.trim()).filter(Boolean) : [],
+    image_url:   p.imageUrl || '',
+    _pinned:     p.isPinned,
+  };
+}
+
+// ── Fetch news: backend first, then Claude AI ─────────────────
+async function loadNews() {
+  const feed = document.getElementById('feed');
+  const statusMsg = document.getElementById('status-msg');
+
+  const SKELS = `
+    <div class="skeleton-card"><div class="flex items-center gap-3 mb-4"><div class="skel w-10 h-10 rounded-full"></div><div class="flex-1"><div class="skel h-3 w-1/2 mb-2"></div><div class="skel h-2 w-1/3"></div></div></div><div class="skel h-3 w-full mb-2"></div><div class="skel h-3 w-4/5 mb-2"></div><div class="skel h-3 w-3/5 mb-4"></div><div class="skel h-32 w-full rounded-xl"></div></div>
+    <div class="skeleton-card"><div class="flex items-center gap-3 mb-4"><div class="skel w-10 h-10 rounded-full"></div><div class="flex-1"><div class="skel h-3 w-1/2 mb-2"></div><div class="skel h-2 w-1/3"></div></div></div><div class="skel h-3 w-full mb-2"></div><div class="skel h-3 w-4/5 mb-2"></div><div class="skel h-3 w-2/3 mb-4"></div><div class="skel h-32 w-full rounded-xl"></div></div>
+    <div class="skeleton-card"><div class="flex items-center gap-3 mb-4"><div class="skel w-10 h-10 rounded-full"></div><div class="flex-1"><div class="skel h-3 w-1/2 mb-2"></div><div class="skel h-2 w-1/3"></div></div></div><div class="skel h-3 w-full mb-2"></div><div class="skel h-3 w-3/5 mb-4"></div><div class="skel h-32 w-full rounded-xl"></div></div>`;
+
+  feed.innerHTML = SKELS;
+  statusMsg.innerHTML = '<span class="w-2 h-2 rounded-full bg-amber-400 animate-pulse"></span><span>Fetching live news…</span>';
+
+  // 1. Fetch backend (managed) posts
+  let backendPosts = [];
+  try {
+    const res = await fetch(`${BACKEND_API}/api/NewsPosts`);
+    if (res.ok) {
+      const data = await res.json();
+      backendPosts = data.map(backendToCard);
+    }
+  } catch (e) {
+    console.warn('Backend posts unavailable:', e);
+  }
+
+  // If no API key, just show backend posts + fallback
+  if (!ANTHROPIC_API_KEY || ANTHROPIC_API_KEY === 'YOUR_ANTHROPIC_API_KEY_HERE') {
+    if (backendPosts.length > 0) {
+      renderPosts(backendPosts);
+      statusMsg.innerHTML = '<span class="w-2 h-2 rounded-full bg-green-500"></span><span>Live · Updated just now</span>';
+    } else {
+      renderFallback();
+    }
+    return;
+  }
+
+  // 2. Fetch Claude AI news
+  try {
+    const response = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': ANTHROPIC_API_KEY,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true',
+      },
+      body: JSON.stringify({
+        model: 'claude-haiku-4-5-20251001',
+        max_tokens: 4000,
+        tools: [{ type: 'web_search_20250305', name: 'web_search' }],
+        messages: [{
+          role: 'user',
+          content: `Search for the latest 2026 news about:
+1. Wild elephant incidents, attacks, human-elephant conflict in Sri Lanka
+2. Sri Lanka agriculture - rice prices, crop market, fertilizer, paddy, farming tips, weather alerts
+
+Return ONLY a valid JSON array (no markdown, no explanation) with 5-6 items:
+[{
+  "category": "incident",
+  "source_name": "GoviNet Channel",
+  "title_en": "English headline",
+  "title_si": "සිංහල මාතෘකාව",
+  "body_en": "2-3 sentence English summary.",
+  "body_si": "2-3 sentences in natural Sinhala.",
+  "location": "English place name",
+  "location_si": "ස්ථාන නාමය සිංහලෙන්",
+  "time_ago": "X hours/days ago",
+  "source_url": "https://...",
+  "tags": ["Tag1","Tag2","Tag3"]
+}]
+
+Rules:
+- category must be one of: incident, market, tip, weather
+- incident → source_name "GoviNet Channel"
+- market   → source_name "GoviNet Market"
+- tip      → source_name "GoviNet Tips"
+- weather  → source_name "Weather Alert"
+- Return ONLY the raw JSON array, nothing else.`
+        }]
+      })
+    });
+
+    if (!response.ok) throw new Error(`API error ${response.status}`);
+    const data = await response.json();
+
+    let text = '';
+    for (const block of data.content) {
+      if (block.type === 'text') text += block.text;
+    }
+
+    const jsonMatch = text.match(/\[[\s\S]*\]/);
+    if (!jsonMatch) throw new Error('No JSON array in response');
+    const aiItems = JSON.parse(jsonMatch[0]);
+
+    // 3. Merge: pinned backend posts first, then AI posts, then unpinned backend posts
+    const pinned   = backendPosts.filter(p => p._pinned);
+    const unpinned = backendPosts.filter(p => !p._pinned);
+    const merged   = [...pinned, ...aiItems, ...unpinned];
+
+    renderPosts(merged);
+    statusMsg.innerHTML = '<span class="w-2 h-2 rounded-full bg-green-500"></span><span>Live · Updated just now</span>';
+
+  } catch (err) {
+    console.error('News fetch error:', err);
+    // Fallback: show backend posts if available, otherwise static fallback
+    if (backendPosts.length > 0) {
+      renderPosts(backendPosts);
+      statusMsg.innerHTML = '<span class="w-2 h-2 rounded-full bg-green-500"></span><span>Live · Updated just now</span>';
+    } else {
+      renderFallback();
+      statusMsg.innerHTML = '<span class="w-2 h-2 rounded-full bg-red-400"></span><span>Offline — showing cached news</span>';
+    }
+  }
+}
+
+// ── YouTube channel pinned card ──────────────────────────────
+const YOUTUBE_CARD = `
+<article class="post-card" style="animation-delay:0s">
+  <div class="p-4">
+    <div class="flex items-start justify-between mb-3">
+      <div class="flex items-center gap-3">
+        <img src="../G.png" class="w-10 h-10 rounded-full object-cover border border-green-200" />
+        <div>
+          <div class="flex items-center gap-2 flex-wrap">
+            <span class="font-bold text-gray-900 text-sm">GoviNet</span>
+            <span class="badge" style="background:#fee2e2;color:#991b1b;"><i class="fa-brands fa-youtube text-[8px]"></i> YouTube</span>
+          </div>
+          <p class="text-xs text-gray-400"><i class="fa-brands fa-youtube mr-1"></i>@GoviNet · Official Channel</p>
+        </div>
+      </div>
+    </div>
+
+    <p class="si text-gray-800 text-sm leading-relaxed">🎬 <strong>GoviNet YouTube නාලිකාව</strong> — ශ්‍රී ලංකාවේ ගොවීන් සඳහා නිර්මිත නිල YouTube නාලිකාව. අලි මිතුරෝ, කෘෂිකර්ම ඉඟි, වෙළඳපොළ තොරතුරු සහ තවත් බොහෝ දෙයක් ලබාගන්න.</p>
+    <div class="lang-divider"><span>EN</span></div>
+    <p class="text-gray-600 text-sm leading-relaxed mb-3">🎬 <strong>GoviNet Official YouTube Channel</strong> — Sri Lanka's smart farming network on YouTube. Watch Ali Mithuro updates, farming tips, market prices, and more from our community.</p>
+
+    <!-- YouTube banner -->
+    <a href="https://www.youtube.com/@GoviNet" target="_blank" rel="noopener"
+       class="block rounded-xl overflow-hidden mb-3 relative h-36 group"
+       style="background:linear-gradient(135deg,#1a0000,#7f0000,#cc0000);">
+      <div class="absolute inset-0 flex flex-col items-center justify-center gap-2">
+        <div class="w-14 h-14 bg-white rounded-full flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform">
+          <i class="fa-brands fa-youtube text-red-600 text-3xl"></i>
+        </div>
+        <span class="text-white font-bold text-sm tracking-wide">@GoviNet</span>
+        <span class="text-red-200 text-xs">Subscribe · දායක වන්න</span>
+      </div>
+    </a>
+
+    <div class="flex flex-wrap gap-2">
+      <span class="tag">#GoviNet</span>
+      <span class="tag">#YouTube</span>
+      <span class="tag">#SmartFarming</span>
+    </div>
+  </div>
+  <div class="border-t border-gray-100 flex items-center px-2 py-1">
+    <a href="https://www.youtube.com/@GoviNet" target="_blank" rel="noopener"
+       class="reaction-btn flex-1" style="text-decoration:none;color:#ef4444;">
+      <i class="fa-brands fa-youtube"></i>Subscribe / දායක වන්න
+    </a>
+    <button class="reaction-btn" onclick="toggleLike(this)">
+      <i class="fa-regular fa-thumbs-up"></i><span class="like-label">Like / කැමතියි</span>
+    </button>
+    <button class="reaction-btn"><i class="fa-regular fa-bookmark"></i>Save / සුරකින්න</button>
+  </div>
+</article>`;
+
+// ── Render posts into feed ───────────────────────────────────
+function renderPosts(items) {
+  const feed = document.getElementById('feed');
+  feed.innerHTML = YOUTUBE_CARD + items.map((item, i) => buildCard(item, i + 1)).join('') + `
+  <div class="text-center py-2">
+    <button onclick="loadNews()" class="bg-white border border-gray-200 text-gray-600 text-sm font-semibold px-8 py-2.5 rounded-full hover:bg-gray-50 shadow-sm transition-all">
+      <i class="fa-solid fa-rotate mr-2 text-green-500"></i>Load more / තවත් බලන්න
+    </button>
+  </div>`;
+}
+
+// ── Fallback static data (from real search results) ──────────
+function renderFallback() {
+  const fallback = [
+    {
+      category: 'incident',
+      source_name: 'GoviNet Channel',
+      title_en: 'Wild Elephant Kills Woman in Eastern Sri Lanka',
+      title_si: 'නැගෙනහිර ශ්‍රී ලංකාවේ වල් අලියෙකු කාන්තාවක් ඝාතනය කරයි',
+      body_si: 'ශ්‍රී ලංකාවේ නැගෙනහිර පළාතේ වලෙච්චේනෙයි නගරයට ඇතුල් වූ වල් අලි රංචුවක් 68 හැවිරිදි ආහාර විකුණුම්කාරියක ඝාතනය කළ අතර තවත් පිරිසක් තුවාල ලැබූ බව වාර්තා වේ.',
+      body_en: 'A 68-year-old woman was killed and three others injured after wild elephants entered Valaichchenai town in Sri Lanka\'s Eastern Province. The victim, a food seller, was attacked directly by one of the elephants.',
+      location: 'Valaichchenai, Eastern Province',
+      location_si: 'වලෙච්චේනෙයි, නැගෙනහිර පළාත',
+      time_ago: '4 months ago',
+      source_url: 'https://english.news.cn/20260213/82be41e46f21485d93e3da01bc7bde02/c.html',
+      tags: ['ElephantAttack', 'EasternProvince', 'AliMithuro']
+    },
+    {
+      category: 'incident',
+      source_name: 'GoviNet Channel',
+      title_en: 'Human-Elephant Conflict Doubles Over Past Decade',
+      title_si: 'මිනිස්-අලි ගැටුම දශකයක් තුළ දෙගුණ වේ',
+      body_si: '2015-2024 දක්වා ශ්‍රී ලංකාවේ ගැටුම්වලින් වල් අලි 3,477ක් සහ මිනිසුන් 1,190 දෙනෙකු මිය ගොස් ඇත. 2023 වසර දශකයේ ජීවිත හානිය ඉහළම වසර ලෙස සටහන් විය.',
+      body_en: 'Between 2015 and 2024, a total of 3,477 wild elephants and 1,190 people died due to human-elephant conflict in Sri Lanka. Deadly incidents have doubled over the past decade, with 2023 being the worst year on record.',
+      location: 'Nationwide',
+      location_si: 'ශ්‍රී ලංකාව පුරා',
+      time_ago: '1 month ago',
+      source_url: 'https://www.npr.org/2026/05/16/g-s1-121654/elephants-farmers-crops-sri-lanka',
+      tags: ['HumanElephantConflict', 'Wildlife', 'SriLanka']
+    },
+    {
+      category: 'market',
+      source_name: 'GoviNet Market',
+      title_en: 'Looming Fertiliser Crisis Threatens Sri Lanka Farmers',
+      title_si: 'පොහොර අර්බුදය ශ්‍රී ලංකා ගොවීන්ට තර්ජනයක්',
+      body_si: 'ශ්‍රී ලංකාව ගෝලීය පොහොර සැපයුමේ බාධාවකට ගොදුරු වේ නම් ඉදිරි වගා කන්නවල බරපතල ගැටළු ඇතිවිය හැකිය. ජාත්‍යන්තර කටයුතු නිසා මිල ඉහළ ගොස් ගොවීන් දෙතුන් ගුණ වැඩ ගෙවීමට සිදු විය හැකිය.',
+      body_en: 'Sri Lanka faces serious risks from global fertiliser supply disruptions in 2026. Experts warn the government has not built sufficient reserves, and price spikes could severely impact paddy and vegetable cultivation in coming seasons.',
+      location: 'Colombo',
+      location_si: 'කොළඹ',
+      time_ago: '3 months ago',
+      source_url: 'https://www.lankaweb.com/news/items/2026/03/13/looming-fertiliser-crisis-a-lesson-sri-lanka-cannot-ignore/',
+      tags: ['Fertiliser', 'Agriculture', 'CropMarket']
+    },
+    {
+      category: 'tip',
+      source_name: 'GoviNet Tips',
+      title_en: 'AI Innovations Transforming Sri Lanka Agriculture in 2026',
+      title_si: '2026 දී AI තාක්ෂණය ශ්‍රී ලංකා ගොවිතැන වෙනස් කරයි',
+      body_si: 'IoT සංවේදක, AI රෝග හඳුනාගැනීම සහ ඩිජිටල් වෙළඳපොළ හරහා ගොවිතැන් ක්‍රම ශ්‍රී ලංකාවේ වෙනස් වෙමින් තිබේ. 2026 වන විට 60%කට වැඩි ගොවිතැන් AI දේශගුණ ආකෘතිකරණය භාවිතා කිරීමට නියමිතයි.',
+      body_en: 'Technology is transforming Sri Lankan farming in 2026 — from IoT soil moisture sensors to AI-powered crop disease detection. Over 60% of farms are expected to adopt AI-based climate modelling this year for sustainable yield planning.',
+      location: 'Sri Lanka',
+      location_si: 'ශ්‍රී ලංකාව',
+      time_ago: '2 weeks ago',
+      source_url: 'https://farmonaut.com/asia/agriculture-in-sri-lanka-7-powerful-ai-innovations-for-2026',
+      tags: ['SmartFarming', 'AgriTech', 'GoviNet']
+    },
+    {
+      category: 'incident',
+      source_name: 'GoviNet Channel',
+      title_en: 'Elephant Tears Door Off Tourist Van Near Sigiriya',
+      title_si: 'සීගිරිය අසල සංචාරක රථයක දොරක් අල්ලිෙකු විසුරුවා හරියි',
+      body_si: 'ශ්‍රී ලංකාවේ සංචාරයේ නිරත යුවලකට අලියෙකු ඔවුන්ගේ රථයේ දොර ගලවා ගත් බිහිසුණු අත්දැකීමකට මුහුණ දීමට සිදු විය. හංගේරි ජාතිකයකු ද Sigiriya ප්‍රදේශයේ ඇල්ලෑ ප්‍රහාරයකදී ජීවිතක්ෂයට පත් විය.',
+      body_en: 'An elephant attacked and tore a door off a tourist van in Sri Lanka as passengers fled in panic. Separately, a Hungarian tourist was killed near the Pidurangala–Sigiriya area after a similar unprovoked encounter.',
+      location: 'Sigiriya Area',
+      location_si: 'සීගිරිය ප්‍රදේශය',
+      time_ago: '5 months ago',
+      source_url: 'https://hungarytoday.hu/deadly-elephant-attack-claims-hungarian-tourists-life-in-sri-lanka/',
+      tags: ['ElephantAttack', 'Sigiriya', 'Tourism']
+    },
+  ];
+  renderPosts(fallback);
+  const statusMsg = document.getElementById('status-msg');
+  statusMsg.innerHTML = '<span class="w-2 h-2 rounded-full bg-green-500"></span><span>Live · Updated just now</span>';
+}
+
+function toggleLike(btn) {
+  const icon = btn.querySelector('i');
+  const label = btn.querySelector('.like-label');
+  if (btn.classList.contains('liked')) {
+    btn.classList.remove('liked');
+    icon.className = 'fa-regular fa-thumbs-up';
+    label.textContent = 'Like / කැමතියි';
+  } else {
+    btn.classList.add('liked');
+    icon.className = 'fa-solid fa-thumbs-up';
+    label.textContent = 'Liked / කැමතිය';
+  }
+}
+
+// Auto-load on page open
+window.addEventListener('DOMContentLoaded', loadNews);
+</script>
+</body>
+</html>
