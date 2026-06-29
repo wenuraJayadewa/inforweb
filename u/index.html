@@ -264,19 +264,18 @@ function avatarInitials(name) {
   return (name || "G").split(" ").map(w => w[0]).join("").toUpperCase().slice(0, 2);
 }
 
-function getUserIdFromPath() {
+function getTokenFromPath() {
   const parts = window.location.pathname.split("/").filter(Boolean);
   const idx = parts.indexOf("u");
-  if (idx !== -1 && parts[idx + 1]) return parseInt(parts[idx + 1], 10);
-  const sp = new URLSearchParams(window.location.search);
-  return sp.get("id") ? parseInt(sp.get("id"), 10) : null;
+  if (idx !== -1 && parts[idx + 1]) return parts[idx + 1];
+  return new URLSearchParams(window.location.search).get("t");
 }
 
 async function load() {
   const root = document.getElementById("root");
-  const userId = getUserIdFromPath();
+  const token = getTokenFromPath();
 
-  if (!userId || isNaN(userId)) {
+  if (!token) {
     root.innerHTML = `
       <div class="state-card">
         <div class="state-icon"><i class="fa-solid fa-id-card-clip"></i></div>
@@ -287,7 +286,7 @@ async function load() {
   }
 
   try {
-    const res = await fetch(`${API}/api/GoviNetUsers/id/${userId}`);
+    const res = await fetch(`${API}/api/GoviNetUsers/by-token/${encodeURIComponent(token)}`);
     if (!res.ok) throw new Error();
     const user = await res.json();
     document.title = `${user.userName} · GoviNet`;
