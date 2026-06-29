@@ -73,21 +73,6 @@
       max-width: 85%;
     }
 
-    /* GNF badge row */
-    .gnf-row {
-      display: flex; align-items: center; gap: 8px;
-      margin-bottom: 22px;
-    }
-    .gnf-label {
-      background: #ef4444; color: #fff;
-      font-size: 11px; font-weight: 800;
-      padding: 3px 10px; border-radius: 6px;
-      letter-spacing: 0.3px;
-    }
-    .gnf-number {
-      color: #4ade80; font-size: 15px; font-weight: 700;
-      letter-spacing: 1.5px;
-    }
 
     /* Contact list */
     .contact-list { display: flex; flex-direction: column; gap: 12px; }
@@ -327,12 +312,7 @@ function buildPage(user) {
     ? `<img src="${esc(user.profileImg)}" alt="${esc(user.userName)}" onerror="this.parentElement.innerHTML='${initials}'" />`
     : initials;
 
-  // GNF / TagCode
-  const gnfHtml = user.tagCode ? `
-    <div class="gnf-row">
-      <span class="gnf-label">GNF :</span>
-      <span class="gnf-number">${esc(user.tagCode)}</span>
-    </div>` : "";
+  const gnfHtml = "";
 
   // Social links
   const socialItems = socials.length === 0
