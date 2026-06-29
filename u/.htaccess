@@ -1,0 +1,3 @@
+Options -Indexes
+RewriteEngine On
+RewriteRule ^([0-9]+)/?$ index.html [L,QSA]

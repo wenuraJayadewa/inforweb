@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>GoviNet Profile</title>
+  <meta name="description" content="GoviNet Digital Visiting Card" />
+  <link rel="icon" href="/G.png" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: #f0fdf4;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 24px 16px 48px;
+    }
+
+    /* ── Top bar ── */
+    .topbar {
+      display: flex; align-items: center; gap: 10px;
+      margin-bottom: 28px;
+    }
+    .topbar img { height: 32px; }
+    .topbar-divider { width: 1px; height: 22px; background: #bbf7d0; }
+    .topbar-label { font-size: 13px; color: #16a34a; font-weight: 700; letter-spacing: 0.3px; }
+
+    /* ── Card ── */
+    .card {
+      width: 100%; max-width: 400px;
+      background: #fff;
+      border-radius: 24px;
+      border: 1px solid #e5e7eb;
+      overflow: hidden;
+      box-shadow: 0 4px 24px rgba(0,0,0,0.07);
+    }
+
+    /* Header strip */
+    .card-header {
+      background: #16a34a;
+      padding: 28px 24px 56px;
+      position: relative;
+    }
+    .card-header-pattern {
+      position: absolute; inset: 0;
+      background: repeating-linear-gradient(
+        45deg,
+        transparent,
+        transparent 20px,
+        rgba(255,255,255,0.04) 20px,
+        rgba(255,255,255,0.04) 40px
+      );
+    }
+    .nfc-badge {
+      position: absolute; top: 16px; right: 16px;
+      background: rgba(255,255,255,0.18);
+      border: 1px solid rgba(255,255,255,0.3);
+      border-radius: 99px;
+      padding: 5px 12px;
+      font-size: 11px; font-weight: 700; color: #fff;
+      display: flex; align-items: center; gap: 6px;
+      backdrop-filter: blur(4px);
+    }
+    .nfc-icon { font-size: 14px; }
+
+    /* Avatar */
+    .avatar-wrap {
+      position: relative;
+      width: 84px; height: 84px;
+      margin: 0 auto;
+      margin-bottom: -42px;
+    }
+    .avatar {
+      width: 84px; height: 84px;
+      border-radius: 50%;
+      border: 4px solid #fff;
+      object-fit: cover;
+      background: #dcfce7;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 32px; font-weight: 800; color: #16a34a;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.12);
+    }
+    .avatar img {
+      width: 100%; height: 100%; border-radius: 50%; object-fit: cover;
+    }
+    .role-dot {
+      position: absolute; bottom: 4px; right: 4px;
+      width: 20px; height: 20px; border-radius: 50%;
+      border: 2px solid #fff;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 10px;
+    }
+
+    /* Body */
+    .card-body { padding: 56px 24px 24px; }
+
+    .user-name {
+      text-align: center;
+      font-size: 22px; font-weight: 800; color: #111827;
+      margin-bottom: 2px;
+    }
+    .user-nick {
+      text-align: center;
+      font-size: 13px; color: #9ca3af; margin-bottom: 6px;
+    }
+    .role-badge {
+      display: inline-flex; align-items: center; gap: 5px;
+      padding: 4px 12px; border-radius: 99px;
+      font-size: 11px; font-weight: 700;
+      margin: 0 auto 16px; display: flex; width: fit-content;
+    }
+    .role-farmer    { background: #f0fdf4; color: #16a34a; border: 1px solid #86efac; }
+    .role-assistant { background: #eff6ff; color: #2563eb; border: 1px solid #93c5fd; }
+    .role-admin     { background: #fef3c7; color: #d97706; border: 1px solid #fcd34d; }
+
+    /* Info row */
+    .info-row {
+      display: flex; align-items: center; gap: 10px;
+      background: #f9fafb; border: 1px solid #f3f4f6;
+      border-radius: 12px; padding: 12px 14px;
+      margin-bottom: 8px;
+    }
+    .info-icon { font-size: 16px; width: 20px; text-align: center; }
+    .info-text { font-size: 14px; color: #374151; font-weight: 500; }
+
+    /* Divider */
+    .section-label {
+      font-size: 11px; font-weight: 700; color: #9ca3af;
+      text-transform: uppercase; letter-spacing: 0.8px;
+      margin: 20px 0 10px;
+    }
+
+    /* Social links */
+    .social-list { display: flex; flex-direction: column; gap: 8px; }
+    .social-item {
+      display: flex; align-items: center; gap: 12px;
+      background: #fff; border: 1px solid #f3f4f6;
+      border-radius: 12px; padding: 12px 14px;
+      text-decoration: none; cursor: pointer;
+      transition: transform 0.15s, box-shadow 0.15s;
+    }
+    .social-item:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
+    .social-icon {
+      width: 38px; height: 38px; border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 18px; flex-shrink: 0;
+    }
+    .social-info { flex: 1; min-width: 0; }
+    .social-name { font-size: 13px; font-weight: 700; color: #111827; }
+    .social-url  { font-size: 11px; color: #9ca3af; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .social-open {
+      font-size: 11px; font-weight: 800; color: #fff;
+      padding: 6px 12px; border-radius: 8px;
+      flex-shrink: 0;
+    }
+
+    /* Empty state */
+    .empty { text-align: center; color: #9ca3af; font-size: 13px; padding: 16px 0; }
+
+    /* Footer */
+    .footer {
+      margin-top: 24px; text-align: center;
+      font-size: 12px; color: #9ca3af;
+    }
+    .footer a { color: #16a34a; font-weight: 600; text-decoration: none; }
+
+    /* Loading / error */
+    .state-box {
+      text-align: center; padding: 40px 24px;
+    }
+    .spinner {
+      width: 36px; height: 36px; border: 3px solid #dcfce7;
+      border-top-color: #16a34a; border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      margin: 0 auto 12px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .state-title { font-size: 16px; font-weight: 700; color: #374151; }
+    .state-sub   { font-size: 13px; color: #9ca3af; margin-top: 4px; }
+
+    /* Download app banner */
+    .app-banner {
+      width: 100%; max-width: 400px;
+      background: #fff; border: 1px solid #e5e7eb;
+      border-radius: 16px; padding: 16px 20px;
+      display: flex; align-items: center; gap: 14px;
+      margin-top: 16px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+    }
+    .app-banner-icon {
+      width: 48px; height: 48px; border-radius: 12px;
+      background: #16a34a; display: flex; align-items: center; justify-content: center;
+      font-size: 24px; flex-shrink: 0;
+    }
+    .app-banner-text .t1 { font-size: 13px; font-weight: 700; color: #111827; }
+    .app-banner-text .t2 { font-size: 11px; color: #9ca3af; margin-top: 2px; }
+  </style>
+</head>
+<body>
+
+  <!-- Top bar -->
+  <div class="topbar">
+    <img src="/Logo.png" alt="GoviNet" />
+    <div class="topbar-divider"></div>
+    <span class="topbar-label">Digital Card</span>
+  </div>
+
+  <!-- Main card -->
+  <div class="card" id="card">
+    <div class="state-box">
+      <div class="spinner"></div>
+      <div class="state-title">Loading profile…</div>
+    </div>
+  </div>
+
+  <!-- App download hint -->
+  <div class="app-banner">
+    <div class="app-banner-icon">🌾</div>
+    <div class="app-banner-text">
+      <div class="t1">Download GoviNet App</div>
+      <div class="t2">Connect with farmers · Track harvests · Get alerts</div>
+    </div>
+  </div>
+
+  <div class="footer">
+    Powered by <a href="https://govinet.lk">govinet.lk</a>
+  </div>
+
+<script>
+const API = "https://govinetwebapi-etb4dygbafa7bvbs.canadacentral-01.azurewebsites.net";
+
+// Platform colours & icons (emoji fallback, clean and zero-dependency)
+const PLATFORM_META = {
+  "WhatsApp":  { color: "#25d366", icon: "💬" },
+  "Facebook":  { color: "#1877f2", icon: "👤" },
+  "Instagram": { color: "#e1306c", icon: "📸" },
+  "TikTok":    { color: "#010101", icon: "🎵" },
+  "YouTube":   { color: "#ff0000", icon: "▶️" },
+  "LinkedIn":  { color: "#0a66c2", icon: "💼" },
+  "Telegram":  { color: "#229ed9", icon: "✈️" },
+  "Viber":     { color: "#7360f2", icon: "📞" },
+  "Twitter/X": { color: "#000000", icon: "𝕏" },
+  "Website":   { color: "#6b7280", icon: "🌐" },
+};
+
+function roleMeta(role) {
+  if (role === 2) return { label: "Admin",               cls: "role-admin",     icon: "⭐" };
+  if (role === 1) return { label: "Agriculture Assistant", cls: "role-assistant", icon: "🌿" };
+  return             { label: "Farmer",                  cls: "role-farmer",    icon: "🌾" };
+}
+
+function avatarInitials(name) {
+  return name.split(" ").map(w => w[0]).join("").toUpperCase().slice(0, 2);
+}
+
+function getUserIdFromPath() {
+  // Handles: /u/123  /u/123/  and ?id=123 fallback
+  const parts = window.location.pathname.split("/").filter(Boolean);
+  const idx = parts.indexOf("u");
+  if (idx !== -1 && parts[idx + 1]) return parseInt(parts[idx + 1], 10);
+  const sp = new URLSearchParams(window.location.search);
+  if (sp.get("id")) return parseInt(sp.get("id"), 10);
+  return null;
+}
+
+async function load() {
+  const card = document.getElementById("card");
+  const userId = getUserIdFromPath();
+
+  if (!userId || isNaN(userId)) {
+    card.innerHTML = `
+      <div class="state-box">
+        <div style="font-size:48px;margin-bottom:12px">🪪</div>
+        <div class="state-title">No profile found</div>
+        <div class="state-sub">This link doesn't point to a valid GoviNet profile.</div>
+      </div>`;
+    return;
+  }
+
+  try {
+    const res = await fetch(`${API}/api/GoviNetUsers/id/${userId}`);
+    if (!res.ok) throw new Error("not found");
+    const user = await res.json();
+    renderCard(card, user);
+  } catch {
+    card.innerHTML = `
+      <div class="state-box">
+        <div style="font-size:48px;margin-bottom:12px">😕</div>
+        <div class="state-title">Profile not available</div>
+        <div class="state-sub">Could not load this GoviNet profile. Try again later.</div>
+      </div>`;
+  }
+}
+
+function renderCard(card, user) {
+  const role = roleMeta(user.role);
+  const socials = user.socialLinks || [];
+  const initials = avatarInitials(user.userName || "G");
+
+  const avatarHtml = user.profileImg
+    ? `<div class="avatar"><img src="${escHtml(user.profileImg)}" alt="${escHtml(user.userName)}" onerror="this.parentElement.innerHTML='${initials}'" /></div>`
+    : `<div class="avatar">${initials}</div>`;
+
+  const socialHtml = socials.length === 0
+    ? `<div class="empty">No social links added yet.</div>`
+    : socials.map(s => {
+        const meta = PLATFORM_META[s.name] || { color: "#6b7280", icon: "🔗" };
+        return `
+          <a class="social-item" href="${escHtml(s.sLink)}" target="_blank" rel="noopener">
+            <div class="social-icon" style="background:${meta.color}18">${meta.icon}</div>
+            <div class="social-info">
+              <div class="social-name">${escHtml(s.name)}</div>
+              <div class="social-url">${escHtml(s.sLink)}</div>
+            </div>
+            <div class="social-open" style="background:${meta.color}">Open</div>
+          </a>`;
+      }).join("");
+
+  document.title = `${user.userName} · GoviNet`;
+
+  card.innerHTML = `
+    <div class="card-header">
+      <div class="card-header-pattern"></div>
+      <div class="nfc-badge"><span class="nfc-icon">📡</span> GoviNet Card</div>
+    </div>
+    <div class="avatar-wrap">${avatarHtml}
+      <div class="role-dot" style="background:${role.cls === 'role-farmer' ? '#16a34a' : role.cls === 'role-assistant' ? '#2563eb' : '#d97706'}">${role.icon.slice(0,1)}</div>
+    </div>
+    <div class="card-body">
+      <div class="user-name">${escHtml(user.userName)}</div>
+      ${user.nickName ? `<div class="user-nick">"${escHtml(user.nickName)}"</div>` : ""}
+      <div style="display:flex;justify-content:center">
+        <div class="role-badge ${role.cls}">${role.icon} ${role.label}</div>
+      </div>
+      <div class="info-row">
+        <span class="info-icon">📞</span>
+        <span class="info-text">${escHtml(user.phoneNumber)}</span>
+      </div>
+      ${user.address ? `
+      <div class="info-row">
+        <span class="info-icon">📍</span>
+        <span class="info-text">${escHtml(user.address)}</span>
+      </div>` : ""}
+
+      <div class="section-label">Social Links</div>
+      <div class="social-list">${socialHtml}</div>
+    </div>`;
+}
+
+function escHtml(str) {
+  if (!str) return "";
+  return String(str).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+}
+
+load();
+</script>
+</body>
+</html>
