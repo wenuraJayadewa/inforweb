@@ -189,14 +189,27 @@
       display: flex; align-items: center; gap: 14px;
       margin-top: 16px;
       box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+      text-decoration: none;
+      transition: box-shadow 0.15s, transform 0.15s;
+      cursor: pointer;
     }
+    .app-banner:hover { box-shadow: 0 6px 20px rgba(0,0,0,0.1); transform: translateY(-1px); }
     .app-banner-icon {
-      width: 48px; height: 48px; border-radius: 12px;
-      background: #16a34a; display: flex; align-items: center; justify-content: center;
-      font-size: 24px; flex-shrink: 0;
+      width: 52px; height: 52px; border-radius: 14px;
+      overflow: hidden; flex-shrink: 0;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.12);
     }
-    .app-banner-text .t1 { font-size: 13px; font-weight: 700; color: #111827; }
-    .app-banner-text .t2 { font-size: 11px; color: #9ca3af; margin-top: 2px; }
+    .app-banner-icon img { width: 100%; height: 100%; object-fit: cover; }
+    .app-banner-text { flex: 1; }
+    .app-banner-text .t1 { font-size: 10px; color: #6b7280; font-weight: 500; }
+    .app-banner-text .t2 { font-size: 15px; font-weight: 800; color: #111827; margin-top: 1px; }
+    .play-badge {
+      flex-shrink: 0;
+      background: #111827; border-radius: 10px;
+      padding: 7px 12px; display: flex; flex-direction: column; align-items: center;
+    }
+    .play-badge svg { width: 18px; height: 18px; margin-bottom: 2px; }
+    .play-badge span { font-size: 9px; font-weight: 700; color: #fff; letter-spacing: 0.3px; }
   </style>
 </head>
 <body>
@@ -217,13 +230,25 @@
   </div>
 
   <!-- App download hint -->
-  <div class="app-banner">
-    <div class="app-banner-icon">🌾</div>
-    <div class="app-banner-text">
-      <div class="t1">Download GoviNet App</div>
-      <div class="t2">Connect with farmers · Track harvests · Get alerts</div>
+  <a class="app-banner" href="https://play.google.com/store/apps/details?id=com.farmstech.govinet" target="_blank" rel="noopener">
+    <div class="app-banner-icon">
+      <img src="/G.png" alt="GoviNet" />
     </div>
-  </div>
+    <div class="app-banner-text">
+      <div class="t1">GET IT ON</div>
+      <div class="t2">Google Play</div>
+    </div>
+    <div class="play-badge">
+      <!-- Google Play triangle icon -->
+      <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M3.18 23.76c.3.17.64.24.98.2L14.77 12 3.16.04a1.5 1.5 0 0 0-.98.2C1.6.63 1.25 1.27 1.25 2v20c0 .73.35 1.37.93 1.76Z" fill="#EA4335"/>
+        <path d="m14.77 12 3.36 3.36 4.5-2.56c.86-.49.86-1.11 0-1.6l-4.5-2.56L14.77 12Z" fill="#FBBC04"/>
+        <path d="m3.18.24 11.6 11.6-3.37 3.36L3.16.04c.01-.01.02.01.02.2Z" fill="#4285F4"/>
+        <path d="M3.18 23.76 14.77 12l-3.36-3.36L3.18.24C2.6.63 1.25 1.27 1.25 2v20c0 .73.35 1.37.93 1.76Z" fill="#34A853"/>
+      </svg>
+      <span>PLAY</span>
+    </div>
+  </a>
 
   <div class="footer">
     Powered by <a href="https://govinet.lk">govinet.lk</a>
